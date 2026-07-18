@@ -38,4 +38,30 @@ test.describe('Evaluasi Kapabilitas Sistem Fitur Pelacakan Proyek Konstruksi', (
     await expect(outputDocument).toBeVisible();
   });
 
+  test('PROG-04: Validasi Pencarian dengan Mengosongkan Kode Proyek', async ({ page }) => {
+    const fieldPencarian = page.locator('input').first();
+    const triggerButton = page.locator('button:has-text("Cari"), button, input[type="submit"]').first();
+    
+    await fieldPencarian.fill('');
+    
+    if (await triggerButton.isDisabled()) {
+      await expect(triggerButton).toBeDisabled();
+    } else {
+      await triggerButton.click();
+      const errorPeringatan = page.locator('text=wajib diisi, text=harus diisi, text=required, text=kosong').first();
+      await expect(errorPeringatan).toBeVisible({ timeout: 5000 });
+    }
+  });
+
+  test('PROG-05: Validasi Pencarian ID Kontrak Tidak Terdaftar / Salah', async ({ page }) => {
+    const fieldPencarian = page.locator('input').first();
+    const triggerButton = page.locator('button:has-text("Cari"), button, input[type="submit"]').first();
+    
+    await fieldPencarian.fill('SALAH-123');
+    await triggerButton.click();
+    
+    const errorMessage = page.locator('text=tidak ditemukan, text=tidak tersedia, text=not found, text=Salah').first();
+    await expect(errorMessage).toBeVisible({ timeout: 5000 });
+  });
+
 });

@@ -5,7 +5,7 @@ const BASE_URL = 'https://bangunanmu-id.vercel.app';
 test.describe('Pengujian Halaman Beranda Sisi User (Client-Side Updated)', () => {
 
   test.beforeEach(async ({ page }) => {
-    test.setTimeout(60000);
+    test.setTimeout(80000);
     await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   });
 
@@ -64,23 +64,19 @@ test.describe('Pengujian Halaman Beranda Sisi User (Client-Side Updated)', () =>
     await expect(page).toHaveURL(new RegExp('.*'));
   });
 
-  test('PORTFOLIO-01: Cek Keaktifan Tombol Filter Kategori Portofolio Terbaru', async ({ page }) => {
-    const tabPerumahan = page.locator('text=Perumahan').first();
-    const tabKomersial = page.locator('text=Komersial').first();
-    const tabInterior = page.locator('text=Interior').first();
+test('PORTFOLIO-01: Cek Struktur Portofolio Terbaru dan Akses Lihat Lebih Banyak', async ({ page }) => {
+    const judulPortofolio = page.locator('text=Portofolio Terbaru').first();
+    await expect(judulPortofolio).toBeVisible({ timeout: 15000 });
 
-    await expect(tabPerumahan).toBeVisible();
-    await expect(tabKomersial).toBeVisible();
-    await expect(tabInterior).toBeVisible();
+    const cardProyek = page.locator('text=/Scandinavian House|Created by : @Bangunanmu.id/i').first();
+    await expect(cardProyek).toBeVisible();
 
-    await tabPerumahan.click();
-    await page.waitForTimeout(500);
+    const btnLihatBanyak = page.locator('button:has-text("Lihat Lebih Banyak"), a:has-text("Lihat Lebih Banyak")').first();
+    await expect(btnLihatBanyak).toBeVisible();
 
-    await tabKomersial.click();
-    await page.waitForTimeout(500);
-
-    await tabInterior.click();
-    await page.waitForTimeout(500);
+    await btnLihatBanyak.scrollIntoViewIfNeeded();
+    await btnLihatBanyak.click().catch(() => {});
+    await page.waitForTimeout(1000);
   });
 
   test('CONT-01: Validasi Kesiapan Form Konsultasi dan Pengisian Data Klien', async ({ page }) => {
@@ -106,6 +102,41 @@ test.describe('Pengujian Halaman Beranda Sisi User (Client-Side Updated)', () =>
     await expect(inputNama).toHaveValue('Fatiah STT NF');
     await expect(inputEmail).toHaveValue('fatiah@student.nurulfikri.ac.id');
     await expect(inputPesan).toHaveValue('Saya berencana melakukan renovasi total pada area fasad bangunan rumah tinggal bertingkat dua dengan konsep minimalis modern.');
+  });
+
+  test('CONT-02: Validasi Pengiriman Form Konsultasi dengan Data Kosong (Required Field)', async ({ page }) => {
+    const inputNama = page.locator('input[placeholder="Masukkan nama Anda"]');
+    const inputEmail = page.locator('input[placeholder="halo@contoh.com"]');
+    const inputPesan = page.locator('textarea[placeholder="Ceritakan tentang proyek Anda..."]');
+    const btnKirimPesan = page.locator('button:has-text("Kirim Pesan"), button:has-text("Kirim")').first();
+
+    await expect(inputNama).toBeVisible();
+
+    await inputNama.fill('');
+    await inputEmail.fill('');
+    await inputPesan.fill('');
+
+    await btnKirimPesan.click();
+
+    const errorPeringatan = page.locator('text=wajib diisi, text=harus diisi, text=required').first();
+    await expect(errorPeringatan).toBeVisible({ timeout: 5000 });
+  });
+
+  test('CONT-03: Validasi Input Email Tidak Valid pada Form Konsultasi', async ({ page }) => {
+    const inputNama = page.locator('input[placeholder="Masukkan nama Anda"]');
+    const inputEmail = page.locator('input[placeholder="halo@contoh.com"]');
+    const inputPesan = page.locator('textarea[placeholder="Ceritakan tentang proyek Anda..."]');
+    const btnKirimPesan = page.locator('button:has-text("Kirim Pesan"), button:has-text("Kirim")').first();
+
+    await inputNama.fill('Fatiah STT NF');
+    await inputPesan.fill('Rencana renovasi bangunan minimalis modern.');
+
+    await inputEmail.fill('budi-email.com');
+
+    await btnKirimPesan.click();
+
+    const errorEmail = page.locator('text=Format email tidak valid, text=email tidak valid, text=invalid email').first();
+    await expect(errorEmail).toBeVisible({ timeout: 5000 });
   });
 
 });

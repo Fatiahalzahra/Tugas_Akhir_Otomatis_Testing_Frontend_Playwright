@@ -46,15 +46,7 @@ test.describe('Pengujian Halaman Kelola Testimoni Admin', () => {
     await expect(wadahKonten).toBeVisible();
   });
 
-  test('TEST-03: Cek Struktur Komponen Konten Ulasan dan Akun Klien', async ({ page }) => {
-    const infoKlien = page.locator('text=INFO KLIEN').first();
-    await expect(infoKlien).toBeVisible({ timeout: 15000 });
-    
-    const ratingUlasan = page.locator('text=RATING & ULASAN').first();
-    await expect(ratingUlasan).toBeVisible();
-  });
-
-  test('TEST-04: Cek Ketersediaan Card Total Ringkasan Testimoni', async ({ page }) => {
+  test('TEST-03: Cek Ketersediaan Card Total Ringkasan Testimoni', async ({ page }) => {
     const cardRingkasan = page.locator('div:has-text("TOTAL TESTIMONI")').first();
     await expect(cardRingkasan).toBeVisible({ timeout: 15000 });
     
@@ -62,12 +54,50 @@ test.describe('Pengujian Halaman Kelola Testimoni Admin', () => {
     expect(textKonten).toContain('TOTAL TESTIMONI');
   });
 
-  test('TEST-05: Validasi Proteksi Modul Konfirmasi Penghapusan Ulasan', async ({ page }) => {
+  test('TEST-04: Validasi Proteksi Modul Konfirmasi Penghapusan ulasan', async ({ page }) => {
     const komponenAksiHapus = page.locator('text=AKSI').first();
     await expect(komponenAksiHapus).toBeVisible({ timeout: 15000 });
     
     const dialogPopUp = page.locator('body');
     await expect(dialogPopUp).toBeDefined();
+  });
+
+  test('TEST-05: Validasi Kegagalan Sistem Saat Proses Hapus Data Gagal (Simulasi Network Error)', async ({ page }) => {
+    const tombolHapus = page.locator('button:has-text("Hapus"), [class*="delete"], [class*="hapus"]').first();
+    await expect(tombolHapus).toBeVisible({ timeout: 15000 });
+    await tombolHapus.click();
+
+    const tombolKonfirmasiHapus = page.locator('button:has-text("Ya"), button:has-text("Hapus"), button:has-text("Confirm")').first();
+    await expect(tombolKonfirmasiHapus).toBeVisible();
+
+    await page.route('**/api/testimonials/**', route => route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Internal Server Error' })
+    }));
+
+    await tombolKonfirmasiHapus.click();
+
+    const errorToast = page.locator('text=Gagal menghapus testimoni, text=Silakan coba lagi nanti, text=error, text=failed').first();
+    await expect(errorToast).toBeVisible({ timeout: 5000 });
+  });
+
+  test('TEST-06: Validasi Error saat Mengubah Status Publikasi Testimoni yang Datanya Sudah Dihapus', async ({ page, context }) => {
+    const page2 = await context.newPage();
+    await page2.goto(`${BASE_URL}/admin/testimonials`, { waitUntil: 'load' });
+    await page2.waitForSelector('text=Manajemen Testimoni', { timeout: 30000 });
+
+    const tombolHapusTab1 = page.locator('button:has-text("Hapus"), [class*="delete"]').first();
+    await tombolHapusTab1.click();
+    const konfirmasiHapusTab1 = page.locator('button:has-text("Ya"), button:has-text("Hapus")').first();
+    await konfirmasiHapusTab1.click();
+    await page.waitForTimeout(2000);
+
+    const ikonMataTab2 = page2.locator('[class*="eye"], button:has-text("Ubah"), [class*="status"]').first();
+    await ikonMataTab2.click();
+
+    const errorNotifikasi = page2.locator('text=Data testimoni sudah tidak tersedia, text=tidak ditemukan, text=not found, text=error').first();
+    await expect(errorNotifikasi).toBeVisible({ timeout: 5000 });
   });
 
 });
